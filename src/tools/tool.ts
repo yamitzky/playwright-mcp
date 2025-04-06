@@ -15,10 +15,10 @@
  */
 
 import type { ImageContent, TextContent } from '@modelcontextprotocol/sdk/types.js';
-import type { z } from 'zod';
-import type { Context } from '../context.js';
 import type * as playwright from 'playwright';
+import type { z } from 'zod';
 import type { ToolCapability } from '../../config.js';
+import type { Context } from '../context.js';
 
 export type ToolSchema<Input extends InputType> = {
   name: string;

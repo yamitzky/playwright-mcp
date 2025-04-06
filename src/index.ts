@@ -18,19 +18,20 @@ import { createServerWithTools } from './server.js';
 import common from './tools/common.js';
 import console from './tools/console.js';
 import dialogs from './tools/dialogs.js';
+import download from './tools/download.js';
 import files from './tools/files.js';
 import install from './tools/install.js';
 import keyboard from './tools/keyboard.js';
 import navigate from './tools/navigate.js';
 import network from './tools/network.js';
 import pdf from './tools/pdf.js';
+import screen from './tools/screen.js';
 import snapshot from './tools/snapshot.js';
 import tabs from './tools/tabs.js';
-import screen from './tools/screen.js';
 
-import type { Tool } from './tools/tool.js';
-import type { Config } from '../config.js';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import type { Config } from '../config.js';
+import type { Tool } from './tools/tool.js';
 
 const snapshotTools: Tool<any>[] = [
   ...common(true),
@@ -42,6 +43,7 @@ const snapshotTools: Tool<any>[] = [
   ...navigate(true),
   ...network,
   ...pdf,
+  ...download,
   ...snapshot,
   ...tabs(true),
 ];
@@ -56,6 +58,7 @@ const screenshotTools: Tool<any>[] = [
   ...navigate(false),
   ...network,
   ...pdf,
+  ...download,
   ...screen,
   ...tabs(false),
 ];

@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
 import * as playwright from 'playwright';
 
-import { waitForCompletion } from './tools/utils.js';
 import { ManualPromise } from './manualPromise.js';
 import { Tab } from './tab.js';
+import { waitForCompletion } from './tools/utils.js';
 
 import type { ImageContent, TextContent } from '@modelcontextprotocol/sdk/types.js';
-import type { ModalState, Tool, ToolActionResult } from './tools/tool.js';
 import type { Config } from '../config.js';
+import type { ModalState, Tool, ToolActionResult } from './tools/tool.js';
 
 type PendingAction = {
   dialogShown: ManualPromise<void>;
@@ -38,6 +42,7 @@ export class Context {
   private _currentTab: Tab | undefined;
   private _modalStates: (ModalState & { tab: Tab })[] = [];
   private _pendingAction: PendingAction | undefined;
+  private _downloadDir: string | undefined;
 
   constructor(tools: Tool[], config: Config) {
     this.tools = tools;
@@ -228,11 +233,49 @@ ${code.join('\n')}
     this._pendingAction?.dialogShown.resolve();
   }
 
+  async listDownloads(): Promise<string> {
+    if (!this._downloadDir)
+      return 'No downloads';
+    const files = await fs.promises.readdir(this._downloadDir);
+    const fileDetails = [];
+    for (const file of files) {
+      const filePath = path.join(this._downloadDir, file);
+      const stats = await fs.promises.stat(filePath);
+      const addedTime = stats.mtime;
+      const timeStr = addedTime.toISOString();
+      fileDetails.push({ filePath, addedTime, timeStr });
+    }
+    fileDetails.sort((a, b) => b.addedTime.getTime() - a.addedTime.getTime());
+    return fileDetails.map(f => `${f.filePath} - downloaded at ${f.timeStr}`).join('\n');
+  }
+
   private _onPageCreated(page: playwright.Page) {
+    page.on("download", (download) => this._onDownload(download))
+
     const tab = new Tab(this, page, tab => this._onPageClosed(tab));
     this._tabs.push(tab);
     if (!this._currentTab)
       this._currentTab = tab;
+  }
+
+  private async _onDownload(download: playwright.Download) {
+    if (!this._downloadDir) {
+      this._downloadDir = path.join(os.tmpdir(), 'playwright-downloads', Date.now().toString())
+      await fs.promises.mkdir(this._downloadDir, { recursive: true })
+    }
+    let prefix = ''
+    try {
+      const page = download.page()
+      const url = new URL(page.url())
+      prefix = url.hostname.replace(/[^a-zA-Z0-9.\-]/g, '_')
+      prefix += '_'
+    } catch (error) {
+      return 'Failed to save download';
+    }
+    const suggestedFilename = download.suggestedFilename()
+    const downloadPath = path.join(this._downloadDir, `${prefix}${suggestedFilename}`)
+    await download.saveAs(downloadPath)
+    return downloadPath;
   }
 
   private _onPageClosed(tab: Tab) {
