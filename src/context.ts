@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
 import * as playwright from 'playwright';
 import yaml from 'yaml';
 
-import { waitForCompletion } from './tools/utils';
 import { ToolResult } from './tools/tool';
+import { waitForCompletion } from './tools/utils';
 
 export type ContextOptions = {
   browserName?: 'chromium' | 'firefox' | 'webkit';
@@ -43,6 +47,7 @@ export class Context {
   private _browserContext: playwright.BrowserContext | undefined;
   private _tabs: Tab[] = [];
   private _currentTab: Tab | undefined;
+  private _downloadDir: string | undefined;
 
   constructor(options: ContextOptions) {
     this.options = options;
@@ -97,11 +102,49 @@ export class Context {
     return await this.listTabs();
   }
 
+  async listDownloads(): Promise<string> {
+    if (!this._downloadDir)
+      return 'No downloads';
+    const files = await fs.promises.readdir(this._downloadDir);
+    const fileDetails = [];
+    for (const file of files) {
+      const filePath = path.join(this._downloadDir, file);
+      const stats = await fs.promises.stat(filePath);
+      const addedTime = stats.mtime;
+      const timeStr = addedTime.toISOString();
+      fileDetails.push({ filePath, addedTime, timeStr });
+    }
+    fileDetails.sort((a, b) => b.addedTime.getTime() - a.addedTime.getTime());
+    return fileDetails.map(f => `${f.filePath} - downloaded at ${f.timeStr}`).join('\n');
+  }
+
   private _onPageCreated(page: playwright.Page) {
+    page.on("download", (download) => this._onDownload(download))
+
     const tab = new Tab(this, page, tab => this._onPageClosed(tab));
     this._tabs.push(tab);
     if (!this._currentTab)
       this._currentTab = tab;
+  }
+
+  private async _onDownload(download: playwright.Download) {
+    if (!this._downloadDir) {
+      this._downloadDir = path.join(os.tmpdir(), 'playwright-downloads', Date.now().toString())
+      await fs.promises.mkdir(this._downloadDir, { recursive: true })
+    }
+    let prefix = ''
+    try {
+      const page = download.page()
+      const url = new URL(page.url())
+      prefix = url.hostname.replace(/[^a-zA-Z0-9.\-]/g, '_')
+      prefix += '_'
+    } catch (error) {
+      return 'Failed to save download';
+    }
+    const suggestedFilename = download.suggestedFilename()
+    const downloadPath = path.join(this._downloadDir, `${prefix}${suggestedFilename}`)
+    await download.saveAs(downloadPath)
+    return downloadPath;
   }
 
   private _onPageClosed(tab: Tab) {

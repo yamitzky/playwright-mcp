@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
+import { console as consoleResource } from './resources/console';
 import { createServerWithTools } from './server';
 import common from './tools/common';
+import download from './tools/download';
 import files from './tools/files';
 import install from './tools/install';
 import keyboard from './tools/keyboard';
 import navigate from './tools/navigate';
 import pdf from './tools/pdf';
+import screen from './tools/screen';
 import snapshot from './tools/snapshot';
 import tabs from './tools/tabs';
-import screen from './tools/screen';
-import { console as consoleResource } from './resources/console';
 
-import type { Tool, ToolCapability } from './tools/tool';
-import type { Resource } from './resources/resource';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type { LaunchOptions } from 'playwright';
+import type { Resource } from './resources/resource';
+import type { Tool, ToolCapability } from './tools/tool';
 
 const snapshotTools: Tool[] = [
   ...common,
@@ -38,6 +39,7 @@ const snapshotTools: Tool[] = [
   ...keyboard(true),
   ...navigate(true),
   ...pdf,
+  ...download,
   ...snapshot,
   ...tabs(true),
 ];
@@ -49,6 +51,7 @@ const screenshotTools: Tool[] = [
   ...keyboard(false),
   ...navigate(false),
   ...pdf,
+  ...download,
   ...screen,
   ...tabs(false),
 ];

@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import http from 'http';
 import fs from 'fs';
+import http from 'http';
 import os from 'os';
 import path from 'path';
 
-import { program } from 'commander';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { program } from 'commander';
 
 
 import { createServer } from './index';
 import { ServerList } from './server';
 
-import type { LaunchOptions } from 'playwright';
 import assert from 'assert';
+import type { LaunchOptions } from 'playwright';
 import { ToolCapability } from './tools/tool';
 
 const packageJSON = require('../package.json');
